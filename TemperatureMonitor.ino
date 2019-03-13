@@ -197,6 +197,25 @@ void LcdDhtLoop(void* context) {
   
   TempMon.displayOut(lcdChar);
 }
+/*
+void SerialDhtLoop(void *context) {
+  //DHTesp dht = *(DHTesp*)_dht;
+  humidity = dht.getHumidity();
+  temperature = dht.getTemperature();
+
+  Serial.print(dht.getStatusString());
+  Serial.print("\t");
+  Serial.print(humidity, 1);
+  Serial.print("\t\t");
+  Serial.print(temperature, 1);
+  Serial.println();
+  //Serial.print(dht.toCelsius(temperature), 1);
+  //Serial.println();
+  //Serial.print(dht.computeHeatIndex(temperature, humidity, false), 1);
+  //Serial.print("\t\t");
+  //Serial.println(dht.computeHeatIndex(dht.toFahrenheit(temperature), humidity, true), 1);
+}
+*/
 
 void displayToBlynk(void* context) {
   Blynk.virtualWrite(V2, (int)temperature);
