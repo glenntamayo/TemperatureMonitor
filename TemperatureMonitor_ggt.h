@@ -4,9 +4,7 @@
 #include <Arduino.h>
 #include <DHTesp.h>
 #include <LCD5110_ggt.h>
-#include <ESP8266WiFiMulti.h>
 #include <ArduinoOTA.h>
-#include <ESP8266WiFi.h>
 #include <FS.h>
 
 class TemperatureMonitor_ggt {
@@ -14,17 +12,17 @@ class TemperatureMonitor_ggt {
 		DHTesp dht;
 		LCD5110_ggt Lcd;
     byte dcPin, scePin, rstPin, blPin, sdinPin, sclkPin;
-		IPAddress gateway(byte, byte, byte, byte);        // gateway of your network
-		IPAddress subnet(byte, byte, byte, byte);       // subnet mask of your network
-		ESP8266WiFiMulti wifiMulti;
 		
 		int brightness;
 		byte contrast;
 		void dhtSetup(byte, String);
-    const char* filenameLcd5110Settings = "/LCD5110 Settings";
-    int getParameter(String, String);
-    String displaySettings;
-    String fileContents(String);
+
+    String contentsLcd5110Settings = "LCD 5110 Settings \nbrightness:1023 \ncontrast:40 \nEnd LCD 5110 Settings";
+    
+    String getParameter(String, String);
+    String getFileContents(String);
+    String getParameter(String, String, int);
+    
 	public:
 		TemperatureMonitor_ggt();
 		void begin();
@@ -39,11 +37,11 @@ class TemperatureMonitor_ggt {
     byte setContrast(byte);
     byte setContrast(String);
     void displayOut(char[30]);
-    bool isWifiConnected();
     void spiffSetup();
     void getLcd5110Settings();
-    void setLcd5110Settings();
+    void setSettings(String, String);
     void spiffFormat();
+
     
 };
 

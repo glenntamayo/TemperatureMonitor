@@ -8,6 +8,11 @@
 #include <Timer.h>
 #include <BlynkButton_ggt.h>
 #include <BlynkSimpleEsp8266.h>
+
+#include <ESP8266WiFi.h>
+#include <DNSServer.h>
+#include <ESP8266WebServer.h>
+#include <WiFiManager.h>         //https://github.com/tzapu/WiFiManager
 /******************** CODE CONFIGURATION *******************/
 
 
@@ -23,7 +28,6 @@ const byte dhtPin = D1;
 
 /******************** CLASS CONSTRUCTORS ********************/
 TemperatureMonitor_ggt TempMon;
-
 
 Timer t;
 
@@ -47,7 +51,9 @@ byte contrast;
 void setup() {
   Serial.begin(115200);
   TempMon.begin(dhtPin, "DHT11", dcPin, scePin, rstPin, blPin, sdinPin, sclkPin);
-
+  
+  WiFiManager wifiManager;
+  wifiManager.autoConnect("AutoConnectAP");
 
   brightness = TempMon.setBrightness("Settings");
   contrast = TempMon.setContrast("Settings"); // Good values range from 40-60
@@ -68,13 +74,13 @@ void loop() {
   
   t.update();
 
-  if (TempMon.isWifiConnected()) {
-    ArduinoOTA.handle();
-    if (!Blynk.connected()) {
-      Blynk.connect();
-    }
-    Blynk.run();
+  
+  ArduinoOTA.handle();
+  if (!Blynk.connected()) {
+    Blynk.connect();
   }
+  Blynk.run();
+
 
 }
 
@@ -123,7 +129,7 @@ void cbBrightness(void* context) {
   brightness = sliderBrightness.state;
   Blynk.virtualWrite(V0, sliderBrightness.state); //return to released state no slide
   Serial.println(brightness);
-  //TempMon.setBrightness(brightness);
+  TempMon.setBrightness(brightness);
 
   //Serial.println(brightness);
 }
