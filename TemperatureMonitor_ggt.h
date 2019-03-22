@@ -6,10 +6,12 @@
 #include <LCD5110_ggt.h>
 #include <ArduinoOTA.h>
 #include <FS.h>
+#include "FileExplorer_ggt.h"
 
-class TemperatureMonitor_ggt {
+class TemperatureMonitor {
 	private:
 		DHTesp dht;
+    
 		LCD5110_ggt Lcd;
     byte dcPin, scePin, rstPin, blPin, sdinPin, sclkPin;
 		
@@ -17,14 +19,10 @@ class TemperatureMonitor_ggt {
 		byte contrast;
 		void dhtSetup(byte, String);
 
-    String contentsLcd5110Settings = "LCD 5110 Settings \nbrightness:1023 \ncontrast:40 \nEnd LCD 5110 Settings";
-    
-    String getParameter(String, String);
-    String getFileContents(String);
-    String getParameter(String, String, int);
+    String contentsLcd5110Settings = "LCD 5110 Settings \nbrightness:1023 \ncontrast:180 \nEnd LCD 5110 Settings";
     
 	public:
-		TemperatureMonitor_ggt();
+		TemperatureMonitor();
 		void begin();
 		void begin(byte, String);
 		void begin(byte, String, byte, byte, byte, byte, byte, byte);
@@ -37,11 +35,11 @@ class TemperatureMonitor_ggt {
     byte setContrast(byte);
     byte setContrast(String);
     void displayOut(char[30]);
-    void spiffSetup();
+    
     void getLcd5110Settings();
     void setSettings(String, String);
-    void spiffFormat();
-
+    
+    FileExplorer fileExplorer;
     
 };
 

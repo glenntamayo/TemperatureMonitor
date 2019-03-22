@@ -2,16 +2,18 @@
 
 /******************** CODE CONFIGURATION *******************/
 
+
 #include "TemperatureMonitor_ggt.h"
 
 #include <ArduinoOTA.h>
 #include <Timer.h>
 #include <BlynkButton_ggt.h>
 #include <BlynkSimpleEsp8266.h>
-
+#include <WidgetRTC.h>
+#include <Time.h>
 #include <ESP8266WiFi.h>
 #include <DNSServer.h>
-#include <ESP8266WebServer.h>
+//#include <ESP8266WebServer.h>
 #include <WiFiManager.h>         //https://github.com/tzapu/WiFiManager
 /******************** CODE CONFIGURATION *******************/
 
@@ -27,7 +29,7 @@ const byte dhtPin = D1;
 /***************** ARDUINO PIN CONFIGURATION ****************/
 
 /******************** CLASS CONSTRUCTORS ********************/
-TemperatureMonitor_ggt TempMon;
+TemperatureMonitor TempMon;
 
 Timer t;
 
@@ -35,6 +37,7 @@ BlynkButton sliderBrightness;
 BlynkButton sliderContrast;
 
 WidgetTerminal terminal(V4);
+WidgetRTC rtc;
 /******************** CLASS CONSTRUCTORS ********************/
 
 /********************* GLOBAL VARIABLES *********************/
@@ -52,9 +55,6 @@ void setup() {
   Serial.begin(115200);
   TempMon.begin(dhtPin, "DHT11", dcPin, scePin, rstPin, blPin, sdinPin, sclkPin);
   
-  WiFiManager wifiManager;
-  wifiManager.autoConnect("AutoConnectAP");
-
   brightness = TempMon.setBrightness("Settings");
   contrast = TempMon.setContrast("Settings"); // Good values range from 40-60
   
@@ -68,14 +68,24 @@ void setup() {
   sliderBrightness.setup(cbBrightness, 10);
   sliderContrast.setup(cbContrast, 10);
 
+  WiFiManager wifiManager;
+  wifiManager.setTimeout(3);
+  //wifiManager.autoConnect("AutoConnectAP");
+  if(!wifiManager.autoConnect("AutoConnectAP")) {
+    Serial.println("failed to connect and hit timeout");
+    delay(1000);
+    //reset and try again, or maybe put it to deep sleep
+    ESP.restart();
+    delay(1000);
+  } 
 }
 
 void loop() {
   
   t.update();
 
-  
   ArduinoOTA.handle();
+  
   if (!Blynk.connected()) {
     Blynk.connect();
   }
@@ -84,15 +94,20 @@ void loop() {
 
 }
 
-void SerialDhtSetup() {
-  Serial.println();
-  Serial.println("Status\tHumidity (%)\tTemperature (C)\t(F)\tHeatIndex (C)\t(F)");
-  String thisBoard = ARDUINO_BOARD;
-  Serial.println(thisBoard);
-}
-
 void LcdDhtLoop(void* context) {
-  String lcdStr = "Temp: ";
+  String lcdStr = "";
+
+  lcdStr.concat(getTime());
+  lcdStr.concat('\n');
+
+  if (timeStatus() == 0) {
+    lcdStr.concat("Time not set");  
+  } else if(timeStatus() == 1) {
+    lcdStr.concat("Time needs to sync");
+  }
+  lcdStr.concat('\n');
+  
+  lcdStr.concat("Temp: ");
   temperature = TempMon.getTemperature();
   humidity = TempMon.getHumidity();
 
@@ -109,7 +124,7 @@ void LcdDhtLoop(void* context) {
   lcdStr.concat(outStr1);
   lcdStr.concat(" %");
 
-  char lcdChar[30];
+  char lcdChar[60];
   lcdStr.toCharArray(lcdChar, sizeof(lcdChar));
   
   TempMon.displayOut(lcdChar);
@@ -118,11 +133,27 @@ void LcdDhtLoop(void* context) {
 void displayToBlynk(void* context) {
   Blynk.virtualWrite(V2, (int)temperature);
   Blynk.virtualWrite(V3, (int)humidity);
-  Serial.println(temperature);
+  //Serial.println(temperature);
+}
+
+String rtcDate(){
+  String currentDate = String(day()) + " " + month() + " " + year(); 
+  return currentDate;
+}
+
+String getTime(){
+  String currentTime = String(hourFormat12()) + ":" + minute() + ":" + second();
+  if (isAM()) {
+    currentTime.concat(" AM   ");
+  } else {
+    currentTime.concat(" PM   ");  
+  }
+  //Serial.println(timeStatus());
+  return currentTime;
 }
 
 BLYNK_CONNECTED() {
-
+  rtc.begin();
 }
 
 void cbBrightness(void* context) {
@@ -145,6 +176,7 @@ BLYNK_WRITE(V0) {
   sliderBrightness.collect(param.asInt());
   sliderBrightness.sWitch();
 }
+
 BLYNK_WRITE(V1) {
   sliderContrast.collect(param.asInt());
   sliderContrast.sWitch();
@@ -156,19 +188,25 @@ BLYNK_WRITE(V2) {
 }
 
 BLYNK_WRITE(V4) {
-String incoming = param.asStr();
-if (String("reset") == incoming) {
-  terminal.println("Restarting... ");
+  String incoming = param.asStr();
+  String out = TempMon.fileExplorer.command(incoming);
+ 
+  //Custom commands
+  if (out.equals("restart")) {
+    terminal.println("Restarting... ");
+    terminal.flush();
+    ESP.restart();
+  } else if(out.equals("macAddress")){
+    terminal.println(WiFi.macAddress());
+  } else if(out.equals("blynkAuth")){
+    terminal.println("Blynk Auth Token: ");
+    terminal.println(auth);
+    terminal.println(strlen(auth));
+  } else {
+    if (out.equals(incoming)) {
+      out.concat(": Command not recognized");
+    }    
+  }
+  terminal.println(out);
   terminal.flush();
-  ESP.restart();
-} else if (String("macAddress") == incoming) {
-  terminal.println("MAC Address: ");
-  terminal.println(WiFi.macAddress());
-} else if (String("blynkAuth") == incoming) {
-  terminal.println("Blynk Auth Token: ");
-  terminal.println(auth);
-  terminal.println(strlen(auth));
-}
-
-terminal.flush();
 }
