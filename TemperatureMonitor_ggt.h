@@ -3,23 +3,24 @@
 
 #include <Arduino.h>
 #include <DHTesp.h>
-#include <LCD5110_ggt.h>
+#include "LCD5110_ggt2.h"
 #include <ArduinoOTA.h>
 #include <FS.h>
-#include "FileExplorer_ggt.h"
+#include "FileOperations_ggt.h"
 
 class TemperatureMonitor {
 	private:
 		DHTesp dht;
-    
-		LCD5110_ggt Lcd;
+
     byte dcPin, scePin, rstPin, blPin, sdinPin, sclkPin;
+    LCD5110 Lcd;
+    
 		
 		int brightness;
 		byte contrast;
 		void dhtSetup(byte, String);
 
-    String contentsLcd5110Settings = "LCD 5110 Settings \nbrightness:1023 \ncontrast:180 \nEnd LCD 5110 Settings";
+    String contentsLcd5110Settings = "LCD 5110 Settings \nbrightness:1023 \ncontrast:76 \nEnd LCD 5110 Settings";
     
 	public:
 		TemperatureMonitor();
@@ -34,12 +35,12 @@ class TemperatureMonitor {
 		int setBrightness(String);
     byte setContrast(byte);
     byte setContrast(String);
-    void displayOut(char[30]);
-    
+    void displayOut(String);
+    void displayOut(String, byte);
     void getLcd5110Settings();
     void setSettings(String, String);
     
-    FileExplorer fileExplorer;
+    FileOperations fileExplorer;
     
 };
 

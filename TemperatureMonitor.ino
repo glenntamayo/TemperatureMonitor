@@ -54,6 +54,8 @@ byte contrast;
 void setup() {
   Serial.begin(115200);
   TempMon.begin(dhtPin, "DHT11", dcPin, scePin, rstPin, blPin, sdinPin, sclkPin);
+
+  TempMon.displayOut("Connecting  to WiFi...");
   
   brightness = TempMon.setBrightness("Settings");
   contrast = TempMon.setContrast("Settings"); // Good values range from 40-60
@@ -73,10 +75,12 @@ void setup() {
   //wifiManager.autoConnect("AutoConnectAP");
   if(!wifiManager.autoConnect("AutoConnectAP")) {
     Serial.println("failed to connect and hit timeout");
+    TempMon.displayOut("Failed to connect and timeout hit.");
+    delay(1000);
+    TempMon.displayOut("Restarting...");
     delay(1000);
     //reset and try again, or maybe put it to deep sleep
     ESP.restart();
-    delay(1000);
   } 
 }
 
@@ -95,39 +99,34 @@ void loop() {
 }
 
 void LcdDhtLoop(void* context) {
-  String lcdStr = "";
 
-  lcdStr.concat(getTime());
-  lcdStr.concat('\n');
+  byte cursorY = 0;
 
+  TempMon.displayOut(getTime(), cursorY++);
   if (timeStatus() == 0) {
-    lcdStr.concat("Time not set");  
+    TempMon.displayOut("Time not set", cursorY++);  
   } else if(timeStatus() == 1) {
-    lcdStr.concat("Time needs to sync");
+    TempMon.displayOut("Time needs to sync", cursorY++);
   }
-  lcdStr.concat('\n');
   
-  lcdStr.concat("Temp: ");
+  String strTemp = "";
+  strTemp.concat("Temp: ");
   temperature = TempMon.getTemperature();
+  strTemp.concat((int)temperature);
+  strTemp.concat(" C");
+  TempMon.displayOut(strTemp, cursorY++);
+
+  String strHumi = "";
+  strHumi.concat("Humi: ");
   humidity = TempMon.getHumidity();
+  strHumi.concat((int)humidity);
+  strHumi.concat(" %");
+  TempMon.displayOut(strHumi, cursorY++);
 
-  char outStr[4];
-  dtostrf(temperature, 3 , 1, outStr);
-  lcdStr.concat(outStr);
-  lcdStr.concat(" C");
-
-  lcdStr.concat('\n');
-  lcdStr.concat("Humi: ");
-
-  char outStr1[4];
-  dtostrf(humidity, 3 , 1, outStr1);
-  lcdStr.concat(outStr1);
-  lcdStr.concat(" %");
-
-  char lcdChar[60];
-  lcdStr.toCharArray(lcdChar, sizeof(lcdChar));
+  for (int i = cursorY; i < 6; i++) {
+    TempMon.displayOut("", i);  
+  }
   
-  TempMon.displayOut(lcdChar);
 }
 
 void displayToBlynk(void* context) {

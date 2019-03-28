@@ -4,9 +4,9 @@
 
 #include <Arduino.h>
 #include "TemperatureMonitor_ggt.h"
-#include "FileExplorer_ggt.h"
+#include "FileOperations_ggt.h"
 #include <DHTesp.h>
-#include <LCD5110_ggt.h>
+#include "LCD5110_ggt2.h"
 #include <ArduinoOTA.h>
 #include <FS.h>
 
@@ -33,9 +33,10 @@ void TemperatureMonitor::begin(byte _dhtPin, String _dhtModel, byte _dcPin, byte
   sdinPin = _sdinPin;
   sclkPin = _sclkPin;
 	begin(_dhtPin, _dhtModel);
-	Lcd.begin(_dcPin, _scePin, _rstPin, _blPin, _sdinPin, _sclkPin);
-	Lcd.clearDisplay(WHITE);
-	Lcd.updateDisplay();
+  Lcd.init(sclkPin, sdinPin, dcPin, rstPin, scePin, blPin);
+	//Lcd.begin(_dcPin, _scePin, _rstPin, _blPin, _sdinPin, _sclkPin);
+	//Lcd.clearDisplay(WHITE);
+	//Lcd.updateDisplay();
 }
 
 float TemperatureMonitor::getTemperature() {
@@ -60,29 +61,17 @@ void TemperatureMonitor::dhtSetup(byte _dhtPin, String _model) {
 
 /******************** LCD5110 TOOLS ********************/
 void TemperatureMonitor::setSettings(String _filename, String _contents) {
-  File f = SPIFFS.open(_filename, "r");  
-
-  Serial.println("");
-  Serial.print("File: ");  
-  Serial.print(_filename);  
-  Serial.print("opening ");
-  if (!f) {
-    Serial.println("failed");  
-  } else {
-      
-    Serial.println("success");  
-    f.print(_contents);
-    f.close();  //Close file
-  }
-  delay(500);
+  fileExplorer.createFile(_filename, _contents);
+  
+  
 }
 
 
 void TemperatureMonitor::getLcd5110Settings() {
   // Uncomment only on new MCU
-  //setSettings("/LCD5110 Settings", contentsLcd5110Settings);
+  setSettings("/LCD5110 Settings.txt", contentsLcd5110Settings);
   
-  String displaySettings = fileExplorer.getFileContents("/LCD5110 Settings");
+  String displaySettings = fileExplorer.getFileContents("/LCD5110 Settings.txt");
   
   brightness = fileExplorer.getParameter(displaySettings, "brightness", 0).toInt();
   contrast = fileExplorer.getParameter(displaySettings, "contrast", 0).toInt();
@@ -98,13 +87,13 @@ byte TemperatureMonitor::setContrast(byte _contrast) {
 }
 
 int TemperatureMonitor::setBrightness(int _brightness) {
-	Lcd.backlight(_brightness);
+	Lcd.setBacklight(_brightness);
   return _brightness;
 }
 
 int TemperatureMonitor::setBrightness(String _source) {
   if (_source.equals("Settings")) {
-    Lcd.backlight(brightness);
+    Lcd.setBacklight(brightness);
   }
   return brightness;
 }
@@ -116,9 +105,14 @@ byte TemperatureMonitor::setContrast(String _source) {
   return contrast;
 }
 
-void TemperatureMonitor::displayOut(char _out[60]) {
-	//Lcd.clearDisplay(0);
-	Lcd.setStr(_out, 0, 0, BLACK);
-	Lcd.updateDisplay();
+void TemperatureMonitor::displayOut(String _out) {
+	Lcd.printStr(_out);
+}
+
+void TemperatureMonitor::displayOut(String _out, byte _cursorY) {
+  Lcd.clearLine(_cursorY);
+  Lcd.setXYChar(0, _cursorY);
+  Lcd.sendStr(_out);
+  
 }
 /******************** LCD5110 TOOLS ********************/
